@@ -54,13 +54,13 @@ class _MyHomePageState extends State<MyHomePage> {
     Cards card;
     //adds all cards to the list 2x for matching
     for (int i = 1; i <= no; i++) {
-      card = Cards(frontImg:"front$i", id:i);
+      card = Cards(frontImg: "front$i", id: i);
       //adds each card 2x
       cards.add(card);
       cards.add(card);
     }
 
-    setState((){}); //update UI
+    setState(() {}); //update UI
   }
 
   //This will randomize the order of the cards being displayed
@@ -91,92 +91,109 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final Size screenSize = MediaQuery.of(context).size;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: background2,
         title: Text(widget.title),
-        titleTextStyle: TextStyle(fontSize: 50,fontWeight: FontWeight.bold,color: text),
+        titleTextStyle: TextStyle(
+          fontSize: 30,
+          fontWeight: FontWeight.bold,
+          color: text,
+        ),
       ),
+
       backgroundColor: background,
       body: Column(
-        mainAxisAlignment:MainAxisAlignment.start, // Align all children to the start
-        crossAxisAlignment: CrossAxisAlignment.center,
+        //mainAxisAlignment:MainAxisAlignment.start, // Align all children to the start
+        //crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // First Expanded for Calculations + Error messages
-          Expanded(
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text("Welcome to Card Matching"),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: accent1),
-                    onPressed: () {
-                      populateCards();
-                    },
-                    child: Text('Randomize Cards'),
-                  ),
-                ],
-              ),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text("Welcome to Card Matching",
+                style:TextStyle(fontFamily:'Poker',fontSize:50)),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: accent1),
+                  onPressed: () {
+                    populateCards();
+                  },
+                  child: Text('Randomize Cards',
+                  style:TextStyle(fontSize:30, color:text2)),
+                ),
+              ],
             ),
           ),
 
-          // GridView for Cards
+          // Card Grid takes remaining space
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                vertical: 10.0,
-                horizontal: 70.0,
-              ), // Add vertical padding
-              child: SizedBox(
-                height: 100,
-                width: double.infinity,
-                child: Center(
-                  child: GridView.builder(
-                    itemCount: matchingList.length,
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 4,
-                      childAspectRatio: 1,
-                      mainAxisSpacing: 8, // Space between rows
-                      crossAxisSpacing: 8, // Space between cols
-                    ),
-                    itemBuilder: (context, index) {
-                      return GestureDetector(
-                        child: Container(
-                          height: 15,
-                          width: 5,
-                          decoration: BoxDecoration(
-                            image: DecorationImage(
-                              image: AssetImage("assets/images/back.png"),
-                              fit: BoxFit.fill,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // Add vertical padding
+                final double availableWidth = constraints.maxWidth * 0.9;
+                final double availableHeight = constraints.maxHeight * 0.9;
+
+                double cardWidth = availableWidth / 4;
+                double cardHeight = availableHeight / 4;
+
+                double cardSize = min(cardWidth, cardHeight);
+
+                return Center(
+                  child: SizedBox(
+                    height: cardSize * 4 + 24,
+                    width: cardSize * 4 + 24,
+                    child: GridView.builder(
+                      physics: NeverScrollableScrollPhysics(),
+                      itemCount: matchingList.length,
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 4,
+                        childAspectRatio: 1,
+                        mainAxisSpacing: 8, // Space between rows
+                        crossAxisSpacing: 8, // Space between cols
+                      ),
+                      itemBuilder: (context, index) {
+                        return GestureDetector(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              image: DecorationImage(
+                                image: AssetImage("assets/images/back.png"),
+                                fit: BoxFit.fill,
+                              ),
                             ),
                           ),
-                        ),
-                        onTap: () {
-                          //test dialog to ensure tap is working
-                          showDialog(
-                            context: context,
-                            builder:(context) => AlertDialog(
-                                  title: Text(
-                                    "Tapped: ${matchingList[index].getId}",
-                                  ),
-                                  content: Text("If you're seeing this the code works",),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () {
-                                        Navigator.of(context).pop();
-                                      },
-                                      child: const Text('Ok'),
+                          onTap: () {
+                            //test dialog to ensure tap is working
+                            showDialog(
+                              context: context,
+                              builder:
+                                  (context) => AlertDialog(
+                                    title: Text(
+                                      "Tapped: ${matchingList[index].getId}",
                                     ),
-                                  ],
-                                ),
-                          );
-                        },
-                      );
-                    },
+                                    content: Text(
+                                      "If you're seeing this the code works",
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () {
+                                          Navigator.of(context).pop();
+                                        },
+                                        child: const Text('Ok'),
+                                      ),
+                                    ],
+                                  ),
+                            );
+                          },
+                        );
+                      },
+                    ),
                   ),
-                ),
-              ),
+                );
+              },
             ),
           ),
         ],
