@@ -49,6 +49,7 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
   int? currentlyFlippingIndex; // Track which card is currently flipping
 
   //use init state to ensure cards are generated at the start of the application
+  //create the animation controller and animation
   @override
   void initState() {
     super.initState();
@@ -61,11 +62,14 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
     gameProvider = GameProvider(cards: cards);
   }
 
+  //create the animation for the card flipping
   void _flipCardAnimation(int index){
     setState(() {
       currentlyFlippingIndex = index;
     });
+    //flip the card
     _controller.forward().then((_) {
+      //reset the controller
       _controller.reset();
     });
   }
@@ -162,6 +166,7 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
         backgroundColor: background2,
         title: Text(widget.title),
         titleTextStyle: TextStyle(
+          fontFamily: 'Poker',
           fontSize: 30,
           fontWeight: FontWeight.bold,
           color: text,
@@ -202,20 +207,22 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
                 final double availableWidth = constraints.maxWidth * 0.9;
                 final double availableHeight = constraints.maxHeight * 0.9;
 
-                // Calculate card dimensions with a 2:3 aspect ratio (typical playing card ratio)
                 double cardWidth = availableWidth / 4;  // 4 cards per row
-                double cardHeight = cardWidth * 1.5;    // make height 1.5 times the width
+                double cardHeight = availableHeight / 4;  
 
+                double cardSize = min(cardWidth, cardHeight);
+
+                //return the card grid
                 return Center(
                   child: SizedBox(
-                    height: cardHeight * 4 + 24,  // 4 rows
-                    width: cardWidth * 4 + 24,
+                    height: cardSize * 4 + 24,  // 4 rows
+                    width: cardSize * 4 + 24,
                     child: GridView.builder(
                       physics: NeverScrollableScrollPhysics(),
                       itemCount: matchingList.length,
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 4,
-                        childAspectRatio: 2/3,  // width:height ratio of 2:3
+                        childAspectRatio: 1,  // width:height ratio of 2:3
                         mainAxisSpacing: 8,
                         crossAxisSpacing: 8,
                       ),
@@ -228,6 +235,7 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
                               return Transform(
                                 transform: Matrix4.identity()
                                   ..setEntry(3, 2, 0.001)
+                                  //if the card is flipping, rotate, dont rotate if not flipping  
                                   ..rotateY(isFlipping ? _animation.value * 3.14 : 0.0),
                                 alignment: Alignment.center,
                                 child: Container(
