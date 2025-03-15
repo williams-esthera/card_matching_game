@@ -32,7 +32,7 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMixin{
   Color background = Color(0xFFC9CBA3);
   Color background2 = Color(0xFFFFE1A8);
   Color accent1 = Color(0xFF9C0D38);
@@ -43,15 +43,38 @@ class _MyHomePageState extends State<MyHomePage> {
   List<Cards> matchingList = [];
   List<Cards> flippedCards = []; // Track currently flipped cards
   late GameProvider gameProvider;
+
+  late AnimationController _controller;
+  late Animation<double> _animation;
+  int? currentlyFlippingIndex; // Track which card is currently flipping
+
   //use init state to ensure cards are generated at the start of the application
   @override
   void initState() {
     super.initState();
+    _controller = AnimationController(
+      duration: Duration(milliseconds: 600), 
+      vsync: this);
+    _animation = Tween<double>(begin:0,end:1).animate(_controller);
     generateCards(8);
     matchingList = cards;
     gameProvider = GameProvider(cards: cards);
   }
 
+  void _flipCardAnimation(int index){
+    setState(() {
+      currentlyFlippingIndex = index;
+    });
+    _controller.forward().then((_) {
+      _controller.reset();
+    });
+  }
+
+  @override
+  void dispose(){
+    _controller.dispose();
+    super.dispose();
+  }
   //Create this method for generating cards without having to manually do so
   void generateCards(int no) {
     //create 2 cards for each card, one with the original id, and one with the original id + the number of cards [1->9,2->10,3->11,4->12,5->13,6->14,7->15,8->16]
@@ -79,25 +102,21 @@ class _MyHomePageState extends State<MyHomePage> {
     //reset the game provider
     gameProvider.resetGame();
 
-    Map<int, int> cardTracker = {};
+    List<Cards> availableCards = List.from(cards);
     List<Cards> tempMatchList = [];
 
-    //loop until 16 cards have been added to tempMatchList
-    while (tempMatchList.length < 16) {
-      int rando = Random().nextInt(cards.length);
-      int getCardId = cards[rando].original_id;
-      Cards getCard = cards[rando];
-
-      //if the card hasn't been added, add it to the list, and track it in the map
-      if (!cardTracker.containsKey(getCardId)) {
-        cardTracker[getCardId] = 1;
-        tempMatchList.add(getCard);
-      }
-      //setState to ensure changes show up correctly
-      setState(() {
-        matchingList = tempMatchList;
-      });
+    //loop until all cards have been added to tempMatchList
+    while (availableCards.isNotEmpty) {
+      int rando = Random().nextInt(availableCards.length);
+      Cards selectedCard = availableCards[rando];
+      tempMatchList.add(selectedCard);
+      availableCards.removeAt(rando);
     }
+
+    setState(() {
+      matchingList = tempMatchList;
+      gameProvider = GameProvider(cards: matchingList);
+    });
   }
 
   void flipCard(Cards flip) {
@@ -183,39 +202,56 @@ class _MyHomePageState extends State<MyHomePage> {
                 final double availableWidth = constraints.maxWidth * 0.9;
                 final double availableHeight = constraints.maxHeight * 0.9;
 
-                double cardWidth = availableWidth / 4;
-                double cardHeight = availableHeight / 4;
-
-                double cardSize = min(cardWidth, cardHeight);
+                // Calculate card dimensions with a 2:3 aspect ratio (typical playing card ratio)
+                double cardWidth = availableWidth / 4;  // 4 cards per row
+                double cardHeight = cardWidth * 1.5;    // make height 1.5 times the width
 
                 return Center(
                   child: SizedBox(
-                    height: cardSize * 4 + 24,
-                    width: cardSize * 4 + 24,
+                    height: cardHeight * 4 + 24,  // 4 rows
+                    width: cardWidth * 4 + 24,
                     child: GridView.builder(
                       physics: NeverScrollableScrollPhysics(),
                       itemCount: matchingList.length,
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 4,
-                        childAspectRatio: 1,
-                        mainAxisSpacing: 8, // Space between rows
-                        crossAxisSpacing: 8, // Space between cols
+                        childAspectRatio: 2/3,  // width:height ratio of 2:3
+                        mainAxisSpacing: 8,
+                        crossAxisSpacing: 8,
                       ),
                       itemBuilder: (context, index) {
                         return GestureDetector(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              image: DecorationImage(
-                                image: AssetImage("${matchingList[index].getCurrImg}"),
-                                fit: BoxFit.fill,
-                              ),
-                            ),
+                          child: AnimatedBuilder(
+                            animation: _animation,
+                            builder: (context, child) {
+                              bool isFlipping = currentlyFlippingIndex == index;
+                              return Transform(
+                                transform: Matrix4.identity()
+                                  ..setEntry(3, 2, 0.001)
+                                  ..rotateY(isFlipping ? _animation.value * 3.14 : 0.0),
+                                alignment: Alignment.center,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                      color: background,
+                                      width: 1.0
+                                    ),
+                                    borderRadius: BorderRadius.circular(10.0),
+                                    image: DecorationImage(
+                                      image: AssetImage("${matchingList[index].getCurrImg}"),
+                                      fit: BoxFit.fill,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                           onTap: () {
                             setState(() {
                               flipCard(matchingList[index]);
+                              _flipCardAnimation(index);
                             });
-                          },
+                          }
                         );
                       },
                     ),
